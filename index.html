@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matriz de Probabilidad e Impacto – Empresa XYZ</title>
+<style>
+:root{--bg:#f6f9fc;--card:#fff;--tx:#33425b;--mu:#7a8aa3;--bd:#e3eaf3;--ac:#7aa7e6;
+--crit:#ffd9d6;--critd:#e8837c;--alt:#ffe9c9;--altd:#e3a64f;--fre:#fff5c2;--fred:#cdb43a;--low:#d9f2e3;--lowd:#5cb887}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);line-height:1.5}
+header{padding:28px 20px 12px;text-align:center}
+h1{margin:0;font-size:1.7rem;font-weight:700}
+header p{margin:6px auto 0;color:var(--mu);max-width:680px}
+main{max-width:1180px;margin:auto;padding:12px 16px 40px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:18px;box-shadow:0 4px 14px rgba(90,120,170,.07)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chip{border:1px solid var(--bd);background:#fff;color:var(--tx);padding:6px 12px;border-radius:99px;cursor:pointer;font-size:.85rem}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.matrix{display:grid;grid-template-columns:28px 1fr;gap:6px}
+.ylab{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;color:var(--mu);font-size:.8rem;font-weight:600}
+.plot{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;display:grid;grid-template:1fr 1fr/1fr 1fr}
+.q{padding:8px 10px;font-size:.72rem;font-weight:700;letter-spacing:.03em;color:#5b6b84;transition:opacity .25s}
+.q.tl{background:var(--alt)}.q.tr{background:var(--crit);text-align:right}
+.q.bl{background:var(--low);display:flex;align-items:flex-end}.q.br{background:var(--fre);display:flex;align-items:flex-end;justify-content:flex-end;text-align:right}
+.dot{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:2px solid #fff;color:#fff;font-weight:700;font-size:.85rem;cursor:pointer;box-shadow:0 3px 8px rgba(60,80,120,.25);transition:transform .2s,opacity .25s}
+.dot:hover,.dot.sel{transform:scale(1.25);z-index:5}
+.dot.sel{outline:3px solid rgba(122,167,230,.5)}
+.dot.dim{opacity:.15;pointer-events:none}
+.xlab{text-align:center;color:var(--mu);font-size:.8rem;font-weight:600;margin-top:6px;grid-column:2}
+.scale{display:flex;justify-content:space-between;color:var(--mu);font-size:.72rem;grid-column:2}
+.list{display:grid;gap:6px;margin-top:14px}
+.item{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid var(--bd);cursor:pointer;background:#fff;font-size:.86rem;text-align:left;color:var(--tx)}
+.item:hover,.item.sel{background:#eef4fd;border-color:var(--ac)}
+.item.hide{display:none}
+.num{flex:none;width:26px;height:26px;border-radius:50%;color:#fff;font-weight:700;font-size:.78rem;display:grid;place-items:center}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:700;color:#4a5568}
+h2{margin:8px 0 6px;font-size:1.2rem}
+.hechos{color:var(--mu);font-size:.9rem;margin:0 0 12px}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.tabs{display:flex;gap:6px;margin:14px 0 10px}
+.tab{flex:1;padding:9px 6px;border:1px solid var(--bd);border-radius:10px;background:#f4f8fd;cursor:pointer;font-weight:600;color:var(--tx)}
+.tab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.tabtxt{background:#f4f8fd;border-radius:12px;padding:12px 14px;font-size:.92rem;min-height:70px}
+.rec{margin-top:10px;font-size:.88rem;color:var(--mu)}
+.rec b{color:var(--tx)}
+h3{font-size:.95rem;margin:16px 0 6px}
+.g{background:#eefaf3;border-left:4px solid var(--lowd);border-radius:8px;padding:9px 12px;margin-bottom:8px;font-size:.9rem}
+.g small{display:block;color:var(--mu);margin-top:2px}
+.empty{color:var(--mu);text-align:center;padding:40px 10px}
+footer{text-align:center;color:var(--mu);font-size:.78rem;padding-bottom:24px}
+</style>
+</head>
+<body>
+<header>
+<h1>Matriz de Probabilidad e Impacto</h1>
+</header>
+<main>
+<section class="card">
+<div class="filters" id="filters"></div>
+<div class="matrix">
+<div class="ylab">IMPACTO →</div>
+<div class="plot" id="plot">
+<div class="q tl">BAJA PROBABILIDAD · ALTO IMPACTO<br>Proteger / transferir</div>
+<div class="q tr">ALTA PROBABILIDAD · ALTO IMPACTO<br>Crítico: mitigar ya</div>
+<div class="q bl">BAJA PROB. · BAJO IMPACTO<br>Aceptar</div>
+<div class="q br">ALTA PROB. · BAJO IMPACTO<br>Controlar / automatizar</div>
+</div>
+<div class="scale"><span>1 Baja</span><span>5 Alta</span></div>
+<div class="xlab">PROBABILIDAD →</div>
+</div>
+<div class="list" id="list"></div>
+</section>
+<section class="card" id="detail"><div class="empty">Selecciona un evento para ver el detalle.</div></section>
+</main>
+<footer>Escala 1–5 · el umbral entre cuadrantes está en 3 · Documento interactivo (HTML/JS puro, sin dependencias)</footer>
+<script>
+const E=[
+{n:1,t:"Lotes quirúrgicos sin cuarentena documental",p:3.8,i:2.2,h:"Bodega Villa Nueva: sin cotejo de vencimientos ni cuarentena. 140 cajas de suturas con <30 días de vida útil, rechazadas por 3 hospitales; baja por Q46,200.",
+a:"Aceptar solo pérdidas menores y esporádicas por lotes cortos, si el costo del control supera la pérdida esperada. Con Q46,200 y recurrencia posible, no es recomendable aceptarlo sin control.",
+c:"Compartir con el proveedor mediante cláusula de vida útil mínima (p. ej. 80%) y devolución/canje de lotes que no la cumplan.",
+r:"Transferir vía contrato de compra con devolución por vencimiento corto o póliza de mercadería; el riesgo de reputación con hospitales no se transfiere.",
+d:"Mitigar (reducir probabilidad)",
+g:[["Procedimiento formal de recepción con cuarentena","Cotejar fecha de vencimiento contra la orden de compra y bloquear el lote en el sistema hasta su liberación por Calidad."],["Alerta de vida útil mínima en el WMS","Rechazo automático al ingreso de lotes bajo el umbral y reporte semanal de lotes próximos a vencer (FEFO)."]]},
+{n:2,t:"Caída del servidor local del WMS",p:1.8,i:3.7,h:"Servidor físico sin espejo de respaldo. Una actualización automática sin pruebas bloqueó la base de datos 14 horas; 32% de las rutas departamentales retrasadas.",
+a:"Aceptar solo si se tolera una interrupción breve con procedimiento manual probado; 14 horas de parálisis excede lo tolerable.",
+c:"Compartir con un proveedor de TI/nube mediante SLA de disponibilidad, réplica y soporte 24/7.",
+r:"Transferir con póliza de interrupción de negocio o ciberriesgo y contrato de hosting con penalidades por caída.",
+d:"Mitigar (reducir impacto)",
+g:[["Servidor espejo / réplica en la nube","Alta disponibilidad con conmutación automática y respaldos diarios con prueba de restauración."],["Gestión de cambios y parches","Ambiente de pruebas, ventana de mantenimiento autorizada y desactivar actualizaciones automáticas en producción."]]},
+{n:3,t:"Desvío simulado de reactivos en rutas nocturnas",p:3.5,i:3.6,h:"Auxiliar nocturno y piloto de fletero colusionados registraron cajas intactas como dañadas. Q85,000 desviados (ene–mar 2026) a clínicas no registradas.",
+a:"No es aceptable: es fraude interno con colusión; aceptarlo normaliza la conducta.",
+c:"Compartir con el fletero: contrato con responsabilidad solidaria, auditorías conjuntas y cláusula de terminación por fraude.",
+r:"Transferir parcialmente con seguro de fidelidad (crimen/infidelidad de empleados) y póliza de transporte con cobertura de robo.",
+d:"Mitigar y reforzar control",
+g:[["Control de mermas con evidencia","Toda merma requiere fotografía, acta firmada por 2 personas y validación del supervisor antes de la baja."],["Conciliación y monitoreo de rutas","GPS en unidades, conteo ciego en carga y entrega, y revisión de clientes no registrados vs. despachos."]]},
+{n:4,t:"Desprogramación térmica en cámara fría",p:2.4,i:4.5,h:"Operador nuevo con 14 horas de turno y sin inducción fijó la cámara 2 en +12 °C en lugar de +4 °C; 9 horas sin detección. Pérdida de Q142,000 en vacunas.",
+a:"No aceptar: afecta producto termolábil y la seguridad del paciente; solo se acepta un riesgo residual mínimo tras controles.",
+c:"Compartir con el fabricante/distribuidor mediante acuerdos de reposición ante excursiones de temperatura documentadas.",
+r:"Transferir con seguro de mercadería refrigerada (spoilage) y contrato de mantenimiento con monitoreo remoto.",
+d:"Mitigar (probabilidad e impacto)",
+g:[["Monitoreo con alarma remota","Sensores con alerta por SMS/correo ante desvíos y bloqueo del panel con clave de supervisor."],["Inducción práctica y control de fatiga","Certificar al personal antes de operar el panel y limitar turnos a un máximo seguro con relevos programados."]]},
+{n:5,t:"Sin conciliación de devoluciones parciales",p:4.8,i:4.5,h:"Las boletas firmadas por hospitales no llegan a facturación. Q410,000 en facturas disputadas y rotación de cartera de 63 días.",
+a:"No es viable aceptar: afecta liquidez y la relación con hospitales; no debe tolerarse una cartera retenida por error interno.",
+c:"Compartir con los hospitales un portal o formato único de devolución con conciliación mensual conjunta.",
+r:"Transferir parcialmente con factoraje o seguro de crédito sobre la cartera, sin sustituir la corrección del proceso.",
+d:"Mitigar (prioridad alta)",
+g:[["Flujo estandarizado de devolución","Boleta numerada y digitalizada que genere automáticamente la nota de crédito en facturación en máximo 48 horas."],["Depuración de las facturas disputadas","Equipo de cobros que concilie las facturas pendientes y emita las notas de crédito, con indicador semanal."]]},
+{n:6,t:"Corrupción de trazabilidad por falla de respaldo eléctrico",p:1.5,i:4.6,h:"UPS con baterías vencidas desde 2024. Apagones corrompieron la correlación serie-cliente del ERP; no se pudo rastrear en <4 h un lote de catéteres con alerta sanitaria.",
+a:"No aceptar: incumple obligaciones regulatorias y expone a sanciones y daño a pacientes.",
+c:"Compartir con un proveedor de energía/infraestructura (contrato de mantenimiento de UPS y planta) y con TI para respaldos.",
+r:"Transferir con póliza de equipo electrónico y de interrupción de negocio, más responsabilidad civil de productos.",
+d:"Mitigar y proteger",
+g:[["Plan de mantenimiento de UPS y planta eléctrica","Reemplazo de baterías vencidas, pruebas de carga trimestrales y planta de emergencia con transferencia automática."],["Respaldos de trazabilidad y simulacros de recall","Backups frecuentes fuera del servidor y ejercicios de retiro de lote con meta de rastreo en menos de 4 horas."]]},
+{n:7,t:"Colapso de tarimas por omisión de estiba",p:4.6,i:1.8,h:"En cierres de mes se omiten límites de apilamiento y flejes. Cayeron 2 tarimas de soluciones IV: Q38,500 y retraso de 3 camiones.",
+a:"Se podría aceptar la pérdida económica menor, pero no la conducta, pues puede causar lesiones al personal.",
+c:"Compartir la carga operativa con turnos extra o apoyo temporal para evitar apresurar el cierre de mes.",
+r:"Transferir con seguro de mercadería y de accidentes laborales; el costo de primas se reduce con mejores prácticas.",
+d:"Controlar (reducir probabilidad)",
+g:[["Supervisión y checklist de estiba","Verificación obligatoria de altura máxima y flejado antes de despachar, con sanción por incumplimiento."],["Reprogramar el cierre de mes","Distribuir despachos en la quincena para eliminar el pico de los últimos dos días y reentrenar a montacarguistas."]]},
+{n:8,t:"Fraccionamiento de órdenes con proveedores ficticios",p:4.2,i:4.2,h:"Encargado de compras creó 3 empresas de fachada y aprobó 14 pagos fraccionados por Q168,000 bajo el límite de Q15,000 sin cotizaciones ni firma gerencial.",
+a:"Inaceptable: es fraude con conflicto de interés; solo cabe aceptar el riesgo residual tras controles.",
+c:"Compartir la aprobación con Gerencia Administrativa y Auditoría Interna mediante autorización dual.",
+r:"Transferir parcialmente con seguro de fidelidad/crimen y acciones legales para recuperar fondos.",
+d:"Mitigar (reducir probabilidad)",
+g:[["Control acumulado por proveedor","Alertas de pagos sucesivos al mismo proveedor y revisión de proveedores nuevos (RTU, parentesco, dirección)."],["Segregación de funciones y verificación del servicio","Cotización mínima y firma dual, además de acta de recepción del mantenimiento antes del pago."]]},
+{n:9,t:"Permisos sanitarios en secuencia en importaciones",p:4.7,i:3.4,h:"La licencia ante el Ministerio de Salud inicia solo al atracar el buque en Puerto Quetzal: 9 días de almacenaje, Q95,000 trimestrales y desabastecimiento temporal.",
+a:"Aceptar solo para insumos no críticos; para críticos genera desabastecimiento y no es recomendable.",
+c:"Compartir con un agente aduanal/gestor regulatorio con tiempos pactados e indicadores de servicio.",
+r:"Transferir costos con pólizas de carga y condiciones de pago/INCOTERMS que trasladen demoras al proveedor cuando aplique.",
+d:"Mitigar (reducir probabilidad)",
+g:[["Tramitación en paralelo durante el tránsito","Iniciar licencias al zarpar el buque con documentos previos y seguimiento semanal."],["Stock de seguridad y planeación anticipada","Inventario mínimo para insumos críticos y calendario de importaciones con holgura regulatoria."]]},
+{n:10,t:"Pedidos urgentes por WhatsApp fuera de plataforma",p:4.4,i:2.6,h:"Seis ejecutivos envían pedidos urgentes por audio o texto fuera de horario: duplicidad de despachos, errores de códigos y 18% de incumplimiento en entregas <24 h.",
+a:"Aceptable solo si es excepcional y queda registrado; como práctica habitual genera errores sistemáticos.",
+c:"Compartir con Bodega y Servicio al Cliente un canal de urgencias con responsable de guardia.",
+r:"Transferir poco aplicable; solo se cubren pérdidas mayores con seguro de responsabilidad, sin resolver la causa.",
+d:"Controlar (reducir probabilidad)",
+g:[["Portal simplificado de pedidos urgentes","Formulario móvil con pocos campos obligatorios y validación de códigos, para eliminar la excusa de la comodidad."],["Política de prohibición con evidencia","Solo se despacha lo registrado en plataforma; medición del cumplimiento urgente y sanción por incumplimiento."]]}
+];
+const quad=e=>e.p>=3&&e.i>=3?["Crítico","#e8837c"]:e.i>=3?["Alto impacto","#e3a64f"]:e.p>=3?["Alta probabilidad","#cdb43a"]:["Bajo","#5cb887"];
+const F=[["Todos",()=>true],["Crítico",e=>e.p>=3&&e.i>=3],["Alto impacto",e=>e.p<3&&e.i>=3],["Alta probabilidad",e=>e.p>=3&&e.i<3]];
+let cur=0,sel=null,tab="a";
+const $=id=>document.getElementById(id);
+function draw(){
+ $("filters").innerHTML=F.map((f,k)=>`<button class="chip ${k==cur?"on":""}" onclick="cur=${k};draw()">${f[0]}</button>`).join("");
+ $("plot").querySelectorAll(".dot").forEach(d=>d.remove());
+ E.forEach(e=>{const b=document.createElement("button");b.className="dot"+(e.n==sel?" sel":"")+(F[cur][1](e)?"":" dim");
+  b.style.left=((e.p-.5)/5*100)+"%";b.style.top=(100-(e.i-.5)/5*100)+"%";b.style.background=quad(e)[1];b.textContent=e.n;b.title=e.t;b.onclick=()=>pick(e.n);$("plot").appendChild(b)});
+ $("list").innerHTML=E.map(e=>`<button class="item ${e.n==sel?"sel":""} ${F[cur][1](e)?"":"hide"}" onclick="pick(${e.n})"><span class="num" style="background:${quad(e)[1]}">${e.n}</span>${e.t}</button>`).join("");
+}
+function pick(n){sel=n;tab="a";draw();show()}
+function show(){
+ const e=E.find(x=>x.n==sel);if(!e)return;const q=quad(e);
+ const T={a:["Aceptar",e.a],c:["Compartir",e.c],r:["Transferir",e.r]};
+ $("detail").innerHTML=`<span class="badge" style="background:${q[1]}55">Evento ${e.n} · ${q[0]}</span>
+ <h2>${e.t}</h2><p class="hechos">${e.h}</p>
+ <div class="meta"><span class="badge" style="background:#eef4fd">Probabilidad ${e.p.toFixed(1)}/5</span><span class="badge" style="background:#eef4fd">Impacto ${e.i.toFixed(1)}/5</span></div>
+ <div class="tabs">${Object.keys(T).map(k=>`<button class="tab ${k==tab?"on":""}" onclick="tab='${k}';show()">${T[k][0]}</button>`).join("")}</div>
+ <div class="tabtxt">${T[tab][1]}</div>
+ <p class="rec"><b>Decisión sugerida:</b> ${e.d}</p>
+ <h3>Dos gestiones para reducir probabilidad o impacto</h3>
+ ${e.g.map((x,k)=>`<div class="g"><b>${k+1}. ${x[0]}</b><small>${x[1]}</small></div>`).join("")}`;
+}
+draw();
+</script>
+</body>
+</html>
